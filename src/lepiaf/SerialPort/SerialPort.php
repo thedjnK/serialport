@@ -104,16 +104,24 @@ class SerialPort
      *
      * @return string
      */
-    public function read()
+    public function read($timeout = 0)
     {
+        $last_char_time = time();
         $this->ensureDeviceOpen();
 
         $chars = [];
 
         do {
             $char = fread($this->fd, 1);
+
             if ($char === '') {
+                if ($timeout > 0 && (time() - $last_char_time) > $timeout) {
+                    break;
+                }
+
                 continue;
+            } else {
+                $last_char = time();
             }
             $chars[] = $char;
         } while ($char !== $this->getParser()->getSeparator());
