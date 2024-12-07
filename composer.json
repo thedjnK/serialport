@@ -1,11 +1,14 @@
 {
-    "name": "lepiaf/serialport",
+    "name": "thedjnk/serialport",
     "description": "Serial port access convenience class",
     "license": "MIT",
     "authors": [
         {
             "name": "Thierry Thuon",
             "email": "lepiaf@users.noreply.github.com"
+        },
+        {
+            "name": "Jamie M."
         }
     ],
     "autoload": {
