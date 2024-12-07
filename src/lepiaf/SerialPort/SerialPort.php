@@ -130,6 +130,37 @@ class SerialPort
     }
 
     /**
+     * Read data byte per byte until function indicates success
+     *
+     * @return string
+     */
+    public function read_function($timeout = 0)
+    {
+        $last_char_time = time();
+        $this->ensureDeviceOpen();
+
+        $this->getParser()->setup();
+
+        do {
+            $char = fread($this->fd, 256);
+
+            if ($char === '') {
+                if ($timeout > 0 && (time() - $last_char_time) > $timeout) {
+                    break;
+                }
+
+                continue;
+            } else {
+                $last_char = time();
+            }
+
+            $this->getParser()->append($char);
+        } while (!$this->getParser()->is_finished());
+
+        return $this->getParser()->parsed();
+    }
+
+    /**
      * Close serial connection
      *
      * @return bool return true on success
