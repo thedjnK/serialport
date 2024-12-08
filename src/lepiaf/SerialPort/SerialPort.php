@@ -132,22 +132,29 @@ class SerialPort
     /**
      * Read data byte per byte until function indicates success
      *
+     * @param int $timeout
+     * @param int $read_size
+     * @param int $sleep_period
+     *
      * @return string
      */
-    public function read_function($timeout = 0)
+    public function read_function($timeout = 0, $read_size = 256, $sleep_period = 0)
     {
         $last_char_time = time();
         $this->ensureDeviceOpen();
-
         $this->getParser()->setup();
 
         do {
-            $char = fread($this->fd, 256);
+            $char = fread($this->fd, $read_size);
 
             if ($char === '') {
                 if ($timeout > 0 && (time() - $last_char_time) > $timeout) {
                     break;
                 }
+
+		if ($sleep_period > 0) {
+			usleep($sleep_period);
+		}
 
                 continue;
             } else {
