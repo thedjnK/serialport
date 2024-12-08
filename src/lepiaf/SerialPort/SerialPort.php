@@ -215,7 +215,7 @@ class SerialPort
     /**
      * @throws DeviceNotOpened
      */
-    private function ensureDeviceOpen()
+    public function ensureDeviceOpen()
     {
         if (!$this->fd) {
             throw new DeviceNotOpened();
