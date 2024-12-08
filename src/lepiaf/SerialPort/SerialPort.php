@@ -38,6 +38,11 @@ class SerialPort
     private $configure;
 
     /**
+     * @var dio
+     */
+    private $dio;
+
+    /**
      * @param ParserInterface|null    $parser
      * @param ConfigureInterface|null $configure
      */
@@ -57,18 +62,29 @@ class SerialPort
      *
      * @throws DeviceNotAvailable|DeviceNotFound
      */
-    public function open($device, $mode = "w+b")
+    public function open($device, $mode = "r+b")
     {
         if (false === file_exists($device)) {
             throw new DeviceNotFound();
         }
 
         $this->getConfigure()->configure($device);
-        $this->fd = fopen($device, $mode);
+        $this->dio = $this->getConfigure()->getOption('dio');
+
+        if (!$this->dio)
+        {
+            $this->fd = fopen($device, $mode);
+        }
+        else
+        {
+            $this->fd = dio_open($device, O_RDWR);
+        }
 
         if (false !== $this->fd) {
-            stream_set_blocking($this->fd, false);
-
+            if (!$this->dio)
+            {
+                stream_set_blocking($this->fd, false);
+            }
             return true;
         }
 
@@ -89,10 +105,20 @@ class SerialPort
     {
         $this->ensureDeviceOpen();
 
-        $dataWritten = fwrite($this->fd, $data);
-        if (false !== $dataWritten) {
-            fflush($this->fd);
+        if (!$this->dio)
+        {
+            $dataWritten = fwrite($this->fd, $data);
+        }
+        else
+        {
+            $dataWritten = dio_write($this->fd, $data);
+        }
 
+        if (false !== $dataWritten) {
+            if (!$this->dio)
+            {
+                fflush($this->fd);
+            }
             return $dataWritten;
         }
 
@@ -145,7 +171,14 @@ class SerialPort
         $this->getParser()->setup();
 
         do {
-            $char = fread($this->fd, $read_size);
+            if (!$this->dio)
+            {
+                $char = fread($this->fd, $read_size);
+            }
+            else
+            {
+                $char = dio_read($this->fd, $read_size);
+            }
 
             if ($char === '') {
                 if ($timeout > 0 && (time() - $last_char_time) > $timeout) {

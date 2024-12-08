@@ -3,7 +3,7 @@
 namespace lepiaf\SerialPort\Configure;
 
 /**
- * Configuration for linux
+ * Configuration for linux/windows
  */
 class TTYConfigure implements ConfigureInterface
 {
@@ -13,25 +13,12 @@ class TTYConfigure implements ConfigureInterface
      * @var array
      */
     private $options = [
-        'cs8' => true,
-        '9600' => true,
-        'ignbrk' => true,
-        'brkint' => false,
-        'icrnl' => false,
-        'imaxbel' => false,
-        'opost' => false,
-        'onlcr' => false,
-        'isig' => false,
-        'icanon' => false,
-        'iexten' => false,
-        'echo' => false,
-        'echoe' => false,
-        'echok' => false,
-        'echoctl' => false,
-        'echoke' => false,
-        'noflsh' => true,
-        'ixon' => false,
-        'crtscts' => false,
+        'baud' => 115200,
+//        'parity' => 'none',
+//        'flow_control' => 'off',
+        'data_bits' => 8,
+//        'stop_bits' => 1,
+        'dio' => false
     ];
 
     /**
@@ -39,48 +26,41 @@ class TTYConfigure implements ConfigureInterface
      */
     public function configure($device)
     {
-        exec(sprintf('stty -F %s %s', $device, $this->getOptions()));
+        if (PHP_OS_FAMILY == 'Windows')
+        {
+            exec(sprintf('mode %s BAUD=%d DATA=%d PARITY=n STOP=1 xon=off rts=off', $device, $this->options['baud'], $this->options['data_bits']));
+        }
+        else
+        {
+            exec(sprintf('stty -F %s %d cs%d -brkint -icrnl -imaxbel -opost -onlcr -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke -ixon -crtscts ignbrk noflsh', $device, $this->options['baud'], $this->options['data_bits']));
+        }
     }
 
     /**
-     * @param string $value
-     * @param bool   $active
+     * @param string $name
+     * @param int    $value
      */
-    public function setOption($value, $active = true)
+    public function setOption($name, $value): bool
     {
-        $this->options[$value] = (bool) $active;
-    }
-
-    /**
-     * @param string $value
-     */
-    public function removeOption($value)
-    {
-        unset($this->options[$value]);
-    }
-
-    /**
-     * If not options has been defined, get default.
-     *
-     * @return string
-     */
-    protected function getOptions()
-    {
-        $options = [];
-        foreach ($this->options as $value => $active)  {
-            $options[] = $this->getActiveString($active).$value;
+        if (!isset($this->options[$name]))
+        {
+            return false;
         }
 
-        return implode(" ", $options);
+        $this->options[$name] = $value;
+        return true;
     }
 
     /**
-     * @param string $active
-     *
-     * @return string
+     * @param string $name
      */
-    private function getActiveString($active)
+    public function getOption($name): mixed
     {
-        return $active === false ? "-" : "";
+        if (!isset($this->options[$name]))
+        {
+            return NULL;
+        }
+
+        return $this->options[$name];
     }
 }
